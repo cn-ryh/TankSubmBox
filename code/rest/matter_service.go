@@ -2,6 +2,7 @@ package rest
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -166,7 +167,6 @@ func (this *MatterService) RequiredLabels(uuid string) []string {
 	return make([]string, 0)
 }
 
-
 // search files by dfs.
 func (this *MatterService) DfsSearch(
 	request *http.Request,
@@ -234,7 +234,6 @@ func (this *MatterService) DownloadFile(
 
 	download.DownloadFile(writer, request, filePath, filename, withContentDisposition)
 }
-
 
 func (this *MatterService) AddLabel(labelname, target, userUuid string, value int) {
 	// Label system has been removed, this method is kept for compatibility
@@ -411,11 +410,26 @@ func (this *MatterService) Delete(request *http.Request, matter *Matter, user *U
 		panic(result.BadRequest("matter cannot be nil"))
 	}
 
+	data, err := json.Marshal(matter)
+	if err != nil {
+		this.logger.Error("Failed to marshal matter: %v", err)
+	} else {
+		fmt.Printf("%v", string(data))
+	}
 	// 删除对应的提交记录（如果是文件夹）
 	if matter.Dir {
-		submission := this.submissionDao.FindByMatterUuid(matter.Uuid)
-		if submission != nil {
-			this.submissionDao.Delete(submission)
+		userProfile := this.userProfileDao.FindByUserUuid(user.Uuid)
+		if userProfile != nil {
+			submissions := this.submissionDao.FindByAuthorId(userProfile.StudentId)
+			data, err := json.Marshal(submissions)
+			if err != nil {
+				this.logger.Error("Failed to marshal submissions: %v", err)
+			} else {
+				fmt.Printf("%v", string(data))
+			}
+			for _, s := range submissions {
+				this.submissionDao.Delete(s)
+			}
 		}
 	}
 
@@ -826,16 +840,16 @@ func (this *MatterService) createDirectory(request *http.Request, dirMatter *Mat
 	if userProfile != nil {
 		// 创建提交记录
 		submission := &Submission{
-			MatterUuid: matter.Uuid,
-			TrackId:     0, // 默认为0，需要后续设置
-			CollegeId:   0, // 默认为0，需要后续设置
-			Title:       matter.Name,
-			AuthorName:  userProfile.RealName,
-			AuthorId:    userProfile.StudentId,
+			MatterUuid:    matter.Uuid,
+			TrackId:       0, // 默认为0，需要后续设置
+			CollegeId:     0, // 默认为0，需要后续设置
+			Title:         matter.Name,
+			AuthorName:    userProfile.RealName,
+			AuthorId:      userProfile.StudentId,
 			IsRecommended: false,
 			RecommendedAt: time.Now(),
-			CreateTime:  time.Now(),
-			UpdateTime:  time.Now(),
+			CreateTime:    time.Now(),
+			UpdateTime:    time.Now(),
 		}
 		this.submissionDao.Create(submission)
 		this.logger.Info("Created submission for folder: matterUuid=%s, authorId=%s, college=%s", matter.Uuid, userProfile.StudentId, userProfile.College)

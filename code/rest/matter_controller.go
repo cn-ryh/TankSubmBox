@@ -270,16 +270,16 @@ func (this *MatterController) CreateDirectory(writer http.ResponseWriter, reques
 		trackId = util.ExtractRequestInt64(request, "trackId")
 	}
 	workName := util.ExtractRequestOptionalString(request, "workName", "")
+	isRootDirectoryStr := util.ExtractRequestOptionalString(request, "isRootDirectory", "false")
+	isRootDirectory := isRootDirectoryStr == "true"
 	user := this.checkUser(request)
 	spaceUuid := util.ExtractRequestOptionalString(request, "spaceUuid", user.SpaceUuid)
 	space := this.spaceService.CheckWritableByUuid(request, user, spaceUuid)
 
 	var dirMatter = this.matterDao.CheckWithRootByUuid(puuid, space)
 
-	// 如果提供了赛道和作品名，则重命名文件夹为 赛道-作品名-学号 格式
-	if trackIdStr != "" && workName != "" && user.Role == USER_ROLE_USER {
-		trackId := util.ExtractRequestInt64(request, "trackId")
-		
+	// 如果提供了赛道和作品名，并且是根目录文件夹，则重命名文件夹为 赛道-作品名-学号 格式
+	if trackIdStr != "" && workName != "" && user.Role == USER_ROLE_USER && isRootDirectory {
 		// 获取用户档案信息
 		userProfile := this.userProfileDao.FindByUserUuid(user.Uuid)
 		if userProfile != nil && userProfile.StudentId != "" {
@@ -297,8 +297,8 @@ func (this *MatterController) CreateDirectory(writer http.ResponseWriter, reques
 
 	matter := this.matterService.AtomicCreateDirectory(request, dirMatter, name, user, space)
 	
-	// 如果是普通用户创建文件夹，并且提供了赛道和作品名，则更新提交信息
-	if user.Role == USER_ROLE_USER && trackId > 0 && workName != "" {
+	// 如果是普通用户创建文件夹，并且提供了赛道和作品名，并且是根目录文件夹，则更新提交信息
+	if user.Role == USER_ROLE_USER && trackId > 0 && workName != "" && isRootDirectory {
 		// 获取用户档案信息
 		userProfile := this.userProfileDao.FindByUserUuid(user.Uuid)
 		if userProfile != nil {

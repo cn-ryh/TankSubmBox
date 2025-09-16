@@ -192,6 +192,7 @@ export default class Matter extends BaseEntity {
     finallyCallback?: any,
     workName?: string,
     trackId?: number,
+    isRootDirectory?: boolean
   ) {
     let that = this;
     let form = {
@@ -199,7 +200,8 @@ export default class Matter extends BaseEntity {
       puuid: this.puuid,
       spaceUuid: this.spaceUuid,
       workName: workName,
-      trackId: trackId
+      trackId: trackId,
+      isRootDirectory: isRootDirectory
     };
 
     return this.httpPost(

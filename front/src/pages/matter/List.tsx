@@ -448,6 +448,8 @@ export default class List extends TankComponent<IProps, IState> {
                 ? dirPathUuidMap[midPaths.slice(0, j - 1).join('/')]
                 : this.currentDirectory.uuid!;
             m.spaceUuid = this.getSpaceUuid();
+            // 只对根目录文件夹（第一级子文件夹）传递workName和trackId，并标记为rootDirectory
+            const isRootDirectory = j === 1 && pPaths.length === 1;
             await m.httpCreateDirectory(
               () => {
                 dirPathUuidMap[midPathStr] = m.uuid;
@@ -460,8 +462,9 @@ export default class List extends TankComponent<IProps, IState> {
                 ]);
               },
               undefined,
-              this.state.workName,
-              this.state.trackId
+              isRootDirectory ? this.state.workName : undefined,
+              isRootDirectory ? this.state.trackId : undefined,
+              isRootDirectory
             );
           }
         }
